@@ -60,9 +60,7 @@ class Uri
             $this->$name = $value;
         }
 
-        if ($this->host !== null) {
-            $this->findHostType();
-        }
+        $this->findHostType();
     }
 
     /**
@@ -91,9 +89,11 @@ class Uri
      *
      * Normalise IPv6 address to [square bracketed] form, as parse_url() will accept some URIs without it
      */
-    private function findHostType()
+    protected function findHostType()
     {
-        if (filter_var($this->host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        if ($this->host === null) {
+            $this->hostType = self::HOSTTYPE_NONE;
+        } else if (filter_var($this->host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
             $this->hostType = self::HOSTTYPE_IPv4;
         } else if ($host = filter_var(trim($this->host, '[]'), FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
             $this->host = '[' . $host . ']';
@@ -105,6 +105,8 @@ class Uri
 
     /**
      * Get the value of a component based on whether it was requested and overriden
+     *
+     * Helper method for getConnectionString()
      *
      * @param string $name
      * @param array $components
