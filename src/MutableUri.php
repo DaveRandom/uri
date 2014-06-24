@@ -29,8 +29,7 @@ class MutableUri extends Uri
     public function __set($name, $value)
     {
         if ($name === 'host') {
-            $this->host = $value;
-            $this->findHostType();
+            list($this->host, $this->hostType) = $this->normalizeHost($value);
         }
     }
 }

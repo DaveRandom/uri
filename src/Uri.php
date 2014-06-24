@@ -60,7 +60,7 @@ class Uri
             $this->$name = $value;
         }
 
-        $this->findHostType();
+        list($this->host, $this->hostType) = $this->normalizeHost($this->host);
     }
 
     /**
@@ -88,19 +88,21 @@ class Uri
      * Find and populate the value of $hostType
      *
      * Normalise IPv6 address to [square bracketed] form, as parse_url() will accept some URIs without it
+     *
+     * @param string $host
+     * @return array
      */
-    protected function findHostType()
+    protected function normalizeHost($host)
     {
         if ($this->host === null) {
-            $this->hostType = self::HOSTTYPE_NONE;
+            return [null, self::HOSTTYPE_NONE];
         } else if (filter_var($this->host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-            $this->hostType = self::HOSTTYPE_IPv4;
+            return [$host, self::HOSTTYPE_IPv4];
         } else if ($host = filter_var(trim($this->host, '[]'), FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            $this->host = '[' . $host . ']';
-            $this->hostType = self::HOSTTYPE_IPv6;
-        } else {
-            $this->hostType = self::HOSTTYPE_NAME;
+            return [$host, self::HOSTTYPE_IPv6];
         }
+
+        return [$host, self::HOSTTYPE_NAME];
     }
 
     /**
@@ -142,21 +144,30 @@ class Uri
             $result .= $scheme . ':';
         }
 
-        if (null !== $host = $this->getComponent('host', $components, $overrides)) {
-            $result .= '//';
-
-            if (null !== $user = $this->getComponent('user', $components, $overrides)) {
-                $result .= $user;
-                if (null !== $pass = $this->getComponent('pass', $components, $overrides)) {
-                    $result .= ':' . $pass;
-                }
-                $result .= '@';
+        if (isset($components['host'])) {
+            if (isset($overrides['host'])) {
+                list($host, $hostType) = $this->normalizeHost($overrides['host']);
+            } else if (isset($this->host)) {
+                $host = $this->host;
+                $hostType = $this->hostType;
             }
 
-            $result .= $host;
+            if (isset($host, $hostType)) {
+                $result .= '//';
 
-            if (null !== $port = $this->getComponent('port', $components, $overrides)) {
-                $result .= ':' . $port;
+                if (null !== $user = $this->getComponent('user', $components, $overrides)) {
+                    $result .= $user;
+                    if (null !== $pass = $this->getComponent('pass', $components, $overrides)) {
+                        $result .= ':' . $pass;
+                    }
+                    $result .= '@';
+                }
+
+                $result .= $hostType === self::HOSTTYPE_IPv6 ? "[{$host}]" : $host;
+
+                if (null !== $port = $this->getComponent('port', $components, $overrides)) {
+                    $result .= ':' . $port;
+                }
             }
         }
 

@@ -2,6 +2,6 @@
 
 namespace React\Uri;
 
-class InvalidUriException extends \ErrorException
+class InvalidUriException extends \LogicException
 {
 }
