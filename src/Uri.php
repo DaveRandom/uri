@@ -52,15 +52,21 @@ class Uri
      */
     public function __construct($uri)
     {
-        if (!$components = parse_url((string)$uri)) {
-            throw new InvalidUriException('Unable to parse ' . $uri . ' as a valid URI');
-        }
+        if ($uri instanceof self) {
+            foreach (['scheme', 'user', 'pass', 'host', 'port', 'path', 'query', 'fragment', 'hostType'] as $name) {
+                $this->$name = $uri->$name;
+            }
+        } else {
+            if (!$components = parse_url((string)$uri)) {
+                throw new InvalidUriException('Unable to parse ' . $uri . ' as a valid URI');
+            }
 
-        foreach ($components as $name => $value) {
-            $this->$name = $value;
-        }
+            foreach ($components as $name => $value) {
+                $this->$name = $value;
+            }
 
-        list($this->host, $this->hostType) = $this->normalizeHost($this->host);
+            list($this->host, $this->hostType) = $this->normalizeHost($this->host);
+        }
     }
 
     /**
@@ -70,7 +76,7 @@ class Uri
      */
     public function __toString()
     {
-        return $this->getConnectionString(['scheme', 'user', 'pass', 'host', 'port', 'path', 'query', 'fragment']);
+        return $this->getConnectionString();
     }
 
     /**
@@ -137,7 +143,7 @@ class Uri
      */
     public function getConnectionString(array $components = null, array $overrides = [])
     {
-        $components = array_flip($components === null ? $components : ['scheme', 'host', 'port']);
+        $components = array_flip($components ?: ['scheme', 'user', 'pass', 'host', 'port', 'path', 'query', 'fragment']);
         $result = '';
 
         if (null !== $scheme = $this->getComponent('scheme', $components, $overrides)) {
